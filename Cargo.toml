@@ -1,6 +1,6 @@
 [package]
 name = "asinfo"
-version = "0.1.0"
+version = "0.1.20260703"
 edition = "2021"
 rust-version = "1.70"
 description = "Zero-allocation, no_std lookup from ASN to handle, description, and country, embedded at compile time from the ipverse/as-metadata dataset"
