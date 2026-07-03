@@ -1,0 +1,3 @@
+[submodule "as-metadata"]
+	path = as-metadata
+	url = https://github.com/ipverse/as-metadata.git

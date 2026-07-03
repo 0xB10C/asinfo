@@ -1,0 +1,76 @@
+# Monthly data-refresh release: updates the as-metadata submodule to upstream
+# HEAD and, if the dataset changed, publishes version 0.1.YYYYMMDD to
+# crates.io (the patch level encodes the data snapshot date).
+#
+# Requires the repository secret CARGO_REGISTRY_TOKEN (a crates.io API token
+# with publish rights for the asinfo crate).
+
+name: release
+
+on:
+  schedule:
+    # 04:17 UTC on the 1st of every month
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Publish even if the dataset is unchanged
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Update as-metadata submodule to upstream HEAD
+        run: git submodule update --remote as-metadata
+
+      - name: Check whether the dataset changed
+        id: dataset
+        run: |
+          if git diff --quiet as-metadata && [ "${{ inputs.force }}" != "true" ]; then
+            echo "dataset unchanged, skipping release"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.dataset.outputs.changed == 'true'
+
+      - name: Set version to 0.1.YYYYMMDD
+        if: steps.dataset.outputs.changed == 'true'
+        run: |
+          VERSION="0.1.$(date -u +%Y%m%d)"
+          sed -i "0,/^version = \".*\"/s//version = \"$VERSION\"/" Cargo.toml
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Test
+        if: steps.dataset.outputs.changed == 'true'
+        run: cargo test
+
+      - name: Commit, tag, and push
+        if: steps.dataset.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add as-metadata Cargo.toml
+          git commit -m "release v$VERSION: update as-metadata"
+          git tag "v$VERSION"
+          git push origin HEAD --tags
+
+      - name: Publish to crates.io
+        if: steps.dataset.outputs.changed == 'true'
+        run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

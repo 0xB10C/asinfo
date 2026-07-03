@@ -1,0 +1,24 @@
+[package]
+name = "asinfo"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+description = "Zero-allocation, no_std lookup from ASN to handle, description, and country, embedded at compile time from the ipverse/as-metadata dataset"
+repository = "https://github.com/0xB10C/asinfo"
+license = "MIT"
+readme = "README.md"
+keywords = ["asn", "autonomous-system", "bgp", "no-std"]
+categories = ["network-programming", "no-std", "embedded"]
+# The as-metadata submodule also contains a 68 MB as.json; only ship the CSV.
+include = ["/src", "/tests", "/build.rs", "/as-metadata/as.csv", "/LICENSE", "/README.md"]
+
+[build-dependencies]
+csv = "1"
+
+[dev-dependencies]
+csv = "1"
+criterion = "0.7"
+
+[[bench]]
+name = "lookup"
+harness = false
