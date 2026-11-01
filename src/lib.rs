@@ -10,9 +10,9 @@
 //! The crate is `no_std` and depends only on `core`.
 //!
 //! ```
-//! // ASN 0 is reserved by IANA and stable across dataset updates.
-//! let info = asinfo::lookup(0).unwrap();
-//! assert_eq!(info.country.as_str(), "US");
+//! if let Some(info) = asinfo::lookup(15169) {
+//!     println!("AS{}: {} ({}, {})", info.asn, info.handle, info.description, info.country);
+//! }
 //! assert!(asinfo::lookup(u32::MAX).is_none());
 //! ```
 
@@ -240,14 +240,22 @@ mod tests {
 
     // The dataset is refreshed on every release, so tests derive expectations
     // from the embedded data itself instead of hardcoding values that churn.
-    // Exception: ASN 0 is reserved by IANA and stable.
+    // Even ASN 0 (reserved by IANA) was dropped upstream in October 2026.
 
     #[test]
-    fn asn_zero_is_iana() {
-        let info = lookup(0).unwrap();
-        assert_eq!(info.asn, 0);
-        assert_eq!(info.handle, "IANA-RSVD-0");
-        assert_eq!(info.country.as_str(), "US");
+    fn well_known_asns_round_trip() {
+        // Large, long-lived networks; checked only for presence and
+        // self-consistency, never for handle or description text.
+        for asn in [
+            15169, /* Google */
+            13335, /* Cloudflare */
+            3356,  /* Lumen */
+        ] {
+            let info = lookup(asn).expect("well-known ASN missing from dataset");
+            assert_eq!(info.asn, asn);
+            assert!(!info.handle.is_empty());
+            assert_eq!(info.country.as_str().len(), 2);
+        }
     }
 
     #[test]
